@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  ml:
+    build: .
+    container_name: ml_container
+    volumes:
+      - .:/app
+    ports:
+      - "8888:8888"
+    environment:
+      - PYTHONPATH=/app
+    stdin_open: true
+    tty: true

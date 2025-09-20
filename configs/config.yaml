@@ -1,0 +1,62 @@
+# Project Configuration
+project:
+  name: "multimodal-sentiment-analysis"
+  seed: 42
+  device: "cuda"
+  
+# Data Configuration
+data:
+  dataset: "CMU-MOSI"
+  features:
+    text: "CMU_MOSI_TimestampedWordVectors"
+    visual: "CMU_MOSI_VisualFacet_4.1"
+    audio: "CMU_MOSI_COVAREP"
+    labels: "CMU_MOSI_Opinion_Labels"
+  
+  # Feature dimensions
+  dims:
+    text: 300
+    visual: 35
+    audio: 74
+  
+  # Processing
+  max_seq_length: 50
+  batch_size: 32
+  num_workers: 4
+  
+  # Splits (video IDs)
+  train_split: ['2iD-tVS8NPw', '8d-gEyoeBzc', 'Qg1p4z1hpvo']
+  valid_split: ['HEsqSxL_c2s', 'OtVxDvYrj8Y']
+  test_split: ['BC9XOoKn5DI', 'h3UEqsqG-ec']
+
+# Model Configuration
+model:
+  name: "AttentionFusion"
+  hidden_dim: 256
+  num_heads: 8
+  dropout: 0.2
+  fusion_dim: 512
+  num_classes: 3
+
+# Training Configuration
+training:
+  epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  gradient_clip: 1.0
+  scheduler: "cosine"
+  early_stopping_patience: 10
+  
+# Logging Configuration
+logging:
+  log_interval: 10
+  save_interval: 5
+  tensorboard: true
+  wandb: false
+  
+# Paths
+paths:
+  data_dir: "/workspace/data"
+  output_dir: "/workspace/outputs"
+  model_dir: "/workspace/outputs/models"
+  log_dir: "/workspace/outputs/logs"
