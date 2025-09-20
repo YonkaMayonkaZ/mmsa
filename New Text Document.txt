@@ -1,6 +1,0 @@
-# In your mmsa directory:
-docker build -t mmsa-image .
-docker run -it -v $(pwd):/mmsa -p 8888:8888 mmsa-image
-
-# You'll get:
-root@container:/mmsa#
