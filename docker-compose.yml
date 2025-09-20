@@ -2,10 +2,12 @@ version: '3.8'
 
 services:
   ml:
-    build: .
+    build: 
+      context: .
+      dockerfile: docker/Dockerfile
     container_name: ml_container
     volumes:
-      - .:/app
+      - .:/workspace
     ports:
       - "8888:8888"
     environment:
