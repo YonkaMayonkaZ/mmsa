@@ -1,9 +1,14 @@
-FROM pytorch/pytorch:2.0.1-cuda11.7-cudnn8-runtime
+# Start from a specific NVIDIA CUDA image with development tools on Ubuntu 22.04
+FROM nvidia/cuda:11.8.0-cudnn8-devel-ubuntu22.04
+
+# Set environment variables to prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Etc/UTC
 
 # Set working directory
 WORKDIR /workspace
 
-# Install system dependencies
+# Install system dependencies, including git and software-properties-common for PPAs
 RUN apt-get update && apt-get install -y \
     git \
     wget \
@@ -11,25 +16,24 @@ RUN apt-get update && apt-get install -y \
     vim \
     htop \
     tmux \
+    software-properties-common \
     && rm -rf /var/lib/apt/lists/*
 
+# Add the deadsnakes PPA and install Python 3.11
+RUN add-apt-repository ppa:deadsnakes/ppa -y && \
+    apt-get update && \
+    apt-get install -y python3.11 python3.11-venv python3.11-dev python3-pip
+
+# Make python3.11 the default python3
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
 # Copy requirements first (for better caching)
-COPY docker/requirements.txt /tmp/requirements.txt
+COPY ./docker/requirements.txt /tmp/requirements.txt
 
-# Install Python dependencies
-RUN pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt
+# Upgrade pip and install all Python dependencies from the requirements file
+RUN python3 -m pip install --upgrade pip && \
+    python3 -m pip install -r /tmp/requirements.txt
 
-# Install CMU Multimodal SDK
-RUN git clone https://github.com/CMU-MultiComp-Lab/CMU-MultimodalSDK.git /tmp/mmsdk && \
-    cd /tmp/mmsdk && \
-    pip install . && \
-    rm -rf /tmp/mmsdk
-
-# Create necessary directories
-RUN mkdir -p /workspace/data/raw /workspace/data/processed /workspace/data/cache \
-    /workspace/outputs/models /workspace/outputs/logs /workspace/outputs/metrics \
-    /workspace/outputs/visualizations
 
 # Copy application code
 COPY . /workspace/
@@ -39,5 +43,5 @@ ENV PYTHONPATH=/workspace:$PYTHONPATH
 ENV CUDA_VISIBLE_DEVICES=0
 ENV WANDB_MODE=offline
 
-# Set entrypoint
-ENTRYPOINT ["/bin/bash"]
+# Set default command to keep container alive for exec
+CMD ["tail", "-f", "/dev/null"]
