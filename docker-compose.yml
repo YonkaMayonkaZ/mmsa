@@ -1,16 +1,19 @@
-version: '3.8'
-
 services:
   ml:
-    build: 
+    build:
       context: .
       dockerfile: docker/Dockerfile
     container_name: ml_container
     volumes:
       - .:/workspace
-    ports:
-      - "8888:8888"
-    environment:
-      - PYTHONPATH=/app
+    # --- ADD THIS SECTION FOR GPU ACCESS ---
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    # ------------------------------------
     stdin_open: true
     tty: true
