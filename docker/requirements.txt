@@ -10,7 +10,7 @@ scikit-learn==1.3.0
 h5py==3.9.0
 validators==0.22.0
 tqdm==4.66.1
-pickle5==0.0.11
+
 
 # Visualization & Logging
 matplotlib==3.7.2

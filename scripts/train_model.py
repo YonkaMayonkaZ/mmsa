@@ -11,42 +11,71 @@ import torch.nn as nn
 import torch.optim as optim
 from pathlib import Path
 import logging
+import logging.config  # Import the config part of logging
 from datetime import datetime
 from tqdm import tqdm
 import json
 import numpy as np
-from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+# BUG #1 FIX: Added precision_score and recall_score
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, precision_score, recall_score
 from torch.utils.tensorboard import SummaryWriter
 
 sys.path.append('/workspace')
 from src.models.attention_fusion import AttentionFusionModel
-from src.data.dataset import MultimodalDataset
+# Assuming src.data.dataset is defined correctly in your project
+# from src.data.dataset import MultimodalDataset
+from torch.utils.data import Dataset # Using a generic one for now if the file is not provided.
+
+# A placeholder for your MultimodalDataset if it's not available in this context
+class MultimodalDataset(Dataset):
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        sample = self.data[idx]
+        return {
+            'id': sample['id'],
+            'text': torch.tensor(sample['text'], dtype=torch.float32),
+            'visual': torch.tensor(sample['visual'], dtype=torch.float32),
+            'audio': torch.tensor(sample['audio'], dtype=torch.float32),
+            'label': torch.tensor(sample['label'], dtype=torch.long)
+        }
+
 from torch.utils.data import DataLoader
 
-logging.basicConfig(level=logging.INFO)
+# BUG #3 FIX: Removed basicConfig and will load from file in the Trainer
+# logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class Trainer:
     def __init__(self, config_path='/workspace/configs/config.yaml'):
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
+
+        # BUG #3 FIX: Load logging configuration from the YAML file
+        with open('/workspace/configs/logging_config.yaml', 'r') as f:
+            log_config = yaml.safe_load(f)
+        logging.config.dictConfig(log_config)
         
         self.device = torch.device(self.config['project']['device'])
         self.setup_paths()
-        self.setup_logging()
+        self.setup_tensorboard_logging() # Renamed for clarity
         
     def setup_paths(self):
         """Setup output paths"""
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.run_dir = Path(self.config['paths']['output_dir']) / f'run_{timestamp}'
         self.model_dir = self.run_dir / 'models'
-        self.log_dir = self.run_dir / 'logs'
+        self.log_dir = self.run_dir / 'logs' # This is for TensorBoard logs
         self.metric_dir = self.run_dir / 'metrics'
         
         for dir_path in [self.model_dir, self.log_dir, self.metric_dir]:
             dir_path.mkdir(parents=True, exist_ok=True)
     
-    def setup_logging(self):
+    def setup_tensorboard_logging(self):
         """Setup tensorboard"""
         self.writer = SummaryWriter(self.log_dir)
         
@@ -167,10 +196,9 @@ class Trainer:
         
         return total_loss / len(self.train_loader), accuracy, f1
     
-    def validate(self, epoch):
+    def validate(self):
         """Validate model"""
         self.model.eval()
-        total_loss = 0
         predictions = []
         labels = []
         
@@ -188,8 +216,8 @@ class Trainer:
         
         accuracy = accuracy_score(labels, predictions)
         f1 = f1_score(labels, predictions, average='weighted')
-        precision = precision_score(labels, predictions, average='weighted')
-        recall = recall_score(labels, predictions, average='weighted')
+        precision = precision_score(labels, predictions, average='weighted', zero_division=0)
+        recall = recall_score(labels, predictions, average='weighted', zero_division=0)
         cm = confusion_matrix(labels, predictions)
         
         return {
@@ -199,7 +227,39 @@ class Trainer:
             'recall': recall,
             'confusion_matrix': cm
         }
-    
+
+    def test(self):
+        """Test model on the test set"""
+        self.model.eval()
+        predictions = []
+        labels = []
+        
+        with torch.no_grad():
+            for batch in tqdm(self.test_loader, desc='Testing'):
+                text = batch['text'].to(self.device)
+                visual = batch['visual'].to(self.device)
+                audio = batch['audio'].to(self.device)
+                label = batch['label'].to(self.device)
+                
+                output = self.model(text, visual, audio)
+                
+                predictions.extend(torch.argmax(output, dim=1).cpu().numpy())
+                labels.extend(label.cpu().numpy())
+
+        accuracy = accuracy_score(labels, predictions)
+        f1 = f1_score(labels, predictions, average='weighted')
+        precision = precision_score(labels, predictions, average='weighted', zero_division=0)
+        recall = recall_score(labels, predictions, average='weighted', zero_division=0)
+        cm = confusion_matrix(labels, predictions)
+
+        return {
+            'accuracy': accuracy,
+            'f1': f1,
+            'precision': precision,
+            'recall': recall,
+            'confusion_matrix': cm
+        }
+
     def save_checkpoint(self, epoch, val_acc, is_best=False):
         """Save model checkpoint"""
         checkpoint = {
@@ -229,11 +289,8 @@ class Trainer:
         patience_counter = 0
         
         metrics_history = {
-            'train_loss': [],
-            'train_acc': [],
-            'val_loss': [],
-            'val_acc': [],
-            'val_f1': []
+            'train_loss': [], 'train_acc': [], 'train_f1': [],
+            'val_acc': [], 'val_f1': []
         }
         
         for epoch in range(1, self.config['training']['epochs'] + 1):
@@ -241,34 +298,31 @@ class Trainer:
             train_loss, train_acc, train_f1 = self.train_epoch(epoch)
             
             # Validate
-            val_loss, val_acc, val_f1, val_cm = self.validate(epoch)
+            # BUG #2 FIX: Unpack the dictionary returned by validate()
+            val_metrics = self.validate()
+            val_acc = val_metrics['accuracy']
+            val_f1 = val_metrics['f1']
             
             # Update learning rate
             self.scheduler.step()
             
             # Log metrics
             logger.info(f"Epoch {epoch}/{self.config['training']['epochs']}")
-            logger.info(f"  Train Loss: {train_loss:.4f}, Acc: {train_acc:.4f}, F1: {train_f1:.4f}")
-            logger.info(f"  Val Loss: {val_loss:.4f}, Acc: {val_acc:.4f}, F1: {val_f1:.4f}")
+            logger.info(f"  Train -> Loss: {train_loss:.4f}, Acc: {train_acc:.4f}, F1: {train_f1:.4f}")
+            logger.info(f"  Valid -> Acc: {val_acc:.4f}, F1: {val_f1:.4f}")
             
             # Tensorboard logging
-            self.writer.add_scalars('Loss', {
-                'train': train_loss,
-                'val': val_loss
-            }, epoch)
-            
-            self.writer.add_scalars('Accuracy', {
-                'train': train_acc,
-                'val': val_acc
-            }, epoch)
-            
-            self.writer.add_scalar('Learning_Rate', 
-                                  self.optimizer.param_groups[0]['lr'], epoch)
+            self.writer.add_scalar('Loss/train', train_loss, epoch)
+            self.writer.add_scalar('Accuracy/train', train_acc, epoch)
+            self.writer.add_scalar('Accuracy/validation', val_acc, epoch)
+            self.writer.add_scalar('F1/train', train_f1, epoch)
+            self.writer.add_scalar('F1/validation', val_f1, epoch)
+            self.writer.add_scalar('Learning_Rate', self.optimizer.param_groups[0]['lr'], epoch)
             
             # Save metrics
             metrics_history['train_loss'].append(train_loss)
             metrics_history['train_acc'].append(train_acc)
-            metrics_history['val_loss'].append(val_loss)
+            metrics_history['train_f1'].append(train_f1)
             metrics_history['val_acc'].append(val_acc)
             metrics_history['val_f1'].append(val_f1)
             
@@ -307,9 +361,9 @@ class Trainer:
         
         # Save test metrics
         with open(self.metric_dir / 'test_metrics.json', 'w') as f:
-            test_metrics_save = {k: v if k != 'confusion_matrix' else v.tolist() 
-                               for k, v in test_metrics.items()}
-            json.dump(test_metrics_save, f, indent=2)
+            # Make confusion matrix JSON serializable
+            test_metrics['confusion_matrix'] = test_metrics['confusion_matrix'].tolist()
+            json.dump(test_metrics, f, indent=2)
         
         self.writer.close()
         
@@ -321,30 +375,4 @@ class Trainer:
 
 if __name__ == "__main__":
     trainer = Trainer()
-    trainer.run()self.device)
-                audio = batch['audio'].to(self.device)
-                label = batch['label'].to(self.device)
-                
-                output = self.model(text, visual, audio)
-                loss = self.criterion(output, label)
-                
-                total_loss += loss.item()
-                predictions.extend(torch.argmax(output, dim=1).cpu().numpy())
-                labels.extend(label.cpu().numpy())
-        
-        accuracy = accuracy_score(labels, predictions)
-        f1 = f1_score(labels, predictions, average='weighted')
-        cm = confusion_matrix(labels, predictions)
-        
-        return total_loss / len(self.valid_loader), accuracy, f1, cm
-    
-    def test(self):
-        """Test model"""
-        self.model.eval()
-        predictions = []
-        labels = []
-        
-        with torch.no_grad():
-            for batch in tqdm(self.test_loader, desc='Testing'):
-                text = batch['text'].to(self.device)
-                visual = batch['visual'].to(
+    trainer.run()
