@@ -3,7 +3,7 @@ import numpy as np
 
 # Make sure 'mosi.hdf5' is in the same directory as your notebook,
 # or provide the full path to the file.
-file_path = 'path/to/your/mosi.hdf5'
+file_path = 'data/mosi.hdf5'
 
 try:
     with h5py.File(file_path, 'r') as hf:
