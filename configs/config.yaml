@@ -24,7 +24,7 @@ data:
   batch_size: 32
   num_workers: 4
   
-  # Splits (video IDs)
+  # Splits (video IDs) - Note: These are not used with the HDF5 data
   train_split: ['2iD-tVS8NPw', '8d-gEyoeBzc', 'Qg1p4z1hpvo']
   valid_split: ['HEsqSxL_c2s', 'OtVxDvYrj8Y']
   test_split: ['BC9XOoKn5DI', 'h3UEqsqG-ec']
@@ -54,9 +54,9 @@ logging:
   tensorboard: true
   wandb: false
   
-# Paths
+# Paths - UPDATED TO BE RELATIVE
 paths:
-  data_dir: "/workspace/data"
-  output_dir: "/workspace/outputs"
-  model_dir: "/workspace/outputs/models"
-  log_dir: "/workspace/outputs/logs"
+  data_dir: "data"
+  output_dir: "outputs"
+  model_dir: "outputs/models"
+  log_dir: "outputs/logs"
