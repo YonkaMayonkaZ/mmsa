@@ -3,7 +3,7 @@ project:
   name: "multimodal-sentiment-analysis"
   seed: 42
   device: "cuda"
-  
+
 # Data Configuration
 data:
   dataset: "CMU-MOSI"
@@ -12,44 +12,44 @@ data:
     visual: "FACET_4.2"
     audio: "COVAREP"
     labels: "Opinion Segment Labels"
-  
+
   # Feature dimensions
   dims:
-    text: 300
+    text: 768
     visual: 35
     audio: 74
-  
+
   # Processing - FIXED TO USE REASONABLE MAX LENGTH
-  max_seq_length: 15   # CHANGED from 50 to accommodate variable lengths (8-11)
+  max_seq_length: 15
   batch_size: 32
   num_workers: 2
 
-# Model Configuration - MODERATE REGULARIZATION
+# Model Configuration - BALANCED REGULARIZATION
 model:
   name: "AttentionFusion"
   hidden_dim: 112
   num_heads: 4
-  dropout: 0.4
+  dropout: 0.45          # DECREASED from 0.5
   fusion_dim: 224
   num_classes: 3
 
 # Training Configuration
 training:
   epochs: 100
-  learning_rate: 0.0001
-  weight_decay: 0.02
+  learning_rate: 0.00009 # INCREASED from 0.00008
+  weight_decay: 0.03     # DECREASED from 0.05
   gradient_clip: 0.5
   scheduler: "cosine"
   early_stopping_patience: 7
   label_smoothing: 0.12
-  
+
 # Logging Configuration
 logging:
   log_interval: 10
   save_interval: 5
   tensorboard: true
   wandb: false
-  
+
 # Paths
 paths:
   data_dir: "data"
