@@ -8,7 +8,6 @@ project:
 data:
   dataset: "CMU-MOSI"
   features:
-    # UPDATED to match HDF5 keys
     text: "words"
     visual: "FACET_4.2"
     audio: "COVAREP"
@@ -20,28 +19,29 @@ data:
     visual: 35
     audio: 74
   
-  # Processing
-  max_seq_length: 50
+  # Processing - FIXED TO USE REASONABLE MAX LENGTH
+  max_seq_length: 15   # CHANGED from 50 to accommodate variable lengths (8-11)
   batch_size: 32
-  num_workers: 2  # REDUCED to fix warnings
+  num_workers: 2
 
-# Model Configuration
+# Model Configuration - MODERATE REGULARIZATION
 model:
   name: "AttentionFusion"
-  hidden_dim: 128  # REDUCED for stability
-  num_heads: 4     # REDUCED for stability
-  dropout: 0.3     # INCREASED for regularization
-  fusion_dim: 256  # REDUCED for stability
+  hidden_dim: 112
+  num_heads: 4
+  dropout: 0.4
+  fusion_dim: 224
   num_classes: 3
 
 # Training Configuration
 training:
   epochs: 100
-  learning_rate: 0.0001  # REDUCED for stability
-  weight_decay: 0.01     # INCREASED for regularization
-  gradient_clip: 0.5     # REDUCED for stability
+  learning_rate: 0.0001
+  weight_decay: 0.02
+  gradient_clip: 0.5
   scheduler: "cosine"
-  early_stopping_patience: 10
+  early_stopping_patience: 7
+  label_smoothing: 0.12
   
 # Logging Configuration
 logging:
@@ -50,7 +50,7 @@ logging:
   tensorboard: true
   wandb: false
   
-# Paths - UPDATED TO BE RELATIVE
+# Paths
 paths:
   data_dir: "data"
   output_dir: "outputs"

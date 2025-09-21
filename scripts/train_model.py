@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Train multimodal sentiment analysis model - STABLE VERSION
+Train multimodal sentiment analysis model - Simple version with bidirectional attention
 """
 import sys
 import yaml
@@ -104,13 +104,13 @@ class Trainer:
     
     def setup_model(self):
         """Initialize model, loss function, optimizer, and scheduler."""
-        logger.info("Setting up model...")
+        logger.info("Setting up bidirectional attention model...")
         self.model = AttentionFusionModel(self.config).to(self.device)
         
         # Use label smoothing to prevent overconfidence
         self.criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
         
-        self.optimizer = optim.AdamW(  # Use AdamW for better regularization
+        self.optimizer = optim.AdamW(
             self.model.parameters(), 
             lr=self.config['training']['learning_rate'], 
             weight_decay=self.config['training']['weight_decay']
@@ -176,7 +176,7 @@ class Trainer:
         f1 = f1_score(all_labels, all_preds, average='weighted', zero_division=0)
         
         return {
-            'loss': float(avg_loss),  # Convert to Python float for JSON serialization
+            'loss': float(avg_loss),
             'accuracy': float(accuracy),
             'f1': float(f1)
         }
@@ -223,7 +223,7 @@ class Trainer:
 
     def train(self):
         """Main training loop."""
-        logger.info("Starting training...")
+        logger.info("Starting training with bidirectional attention...")
         
         best_val_f1 = 0.0
         patience_counter = 0
@@ -245,12 +245,9 @@ class Trainer:
             logger.info(f"Train - Loss: {train_metrics['loss']:.4f}, Acc: {train_metrics['accuracy']:.4f}, F1: {train_metrics['f1']:.4f}")
             logger.info(f"Valid - Loss: {val_metrics['loss']:.4f}, Acc: {val_metrics['accuracy']:.4f}, F1: {val_metrics['f1']:.4f}")
             
-            # Save history (remove confusion matrix for JSON serialization)
-            train_hist = {k: v for k, v in train_metrics.items()}
-            val_hist = {k: v for k, v in val_metrics.items() if k != 'confusion_matrix'}
-            
-            history['train'].append(train_hist)
-            history['valid'].append(val_hist)
+            # Save history
+            history['train'].append(train_metrics)
+            history['valid'].append({k: v for k, v in val_metrics.items() if k != 'confusion_matrix'})
             
             # Save best model
             if val_metrics['f1'] > best_val_f1:
@@ -287,7 +284,7 @@ class Trainer:
                 logger.info(f"  {key.capitalize()}: {value:.4f}")
         logger.info(f"  Confusion Matrix:\n{test_metrics['confusion_matrix']}")
         
-        # Save results (convert numpy arrays to lists for JSON)
+        # Save results
         test_results = {k: v for k, v in test_metrics.items() if k != 'confusion_matrix'}
         test_results['confusion_matrix'] = test_metrics['confusion_matrix'].tolist()
         
