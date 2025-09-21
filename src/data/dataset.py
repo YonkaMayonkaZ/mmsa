@@ -33,9 +33,15 @@ class MultimodalDataset(Dataset):
         audio = torch.FloatTensor(sample['audio'])
         label = torch.LongTensor([sample['label']])[0]  # Single label
         
+        # Get the actual sequence length before padding
+        # We assume padding results in zero vectors, so we check the sum of absolute values.
+        # This is crucial for creating the attention mask later.
+        seq_len = (torch.sum(torch.abs(text), dim=1) != 0).sum().item()
+
         return {
             'text': text,
             'visual': visual,
             'audio': audio,
-            'label': label
+            'label': label,
+            'seq_len': seq_len  # Return the original length
         }
