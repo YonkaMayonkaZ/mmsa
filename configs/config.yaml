@@ -23,28 +23,23 @@ data:
   # Processing
   max_seq_length: 50
   batch_size: 32
-  num_workers: 4
-  
-  # Splits (video IDs) - Note: These are not used with the HDF5 data
-  train_split: ['2iD-tVS8NPw', '8d-gEyoeBzc', 'Qg1p4z1hpvo']
-  valid_split: ['HEsqSxL_c2s', 'OtVxDvYrj8Y']
-  test_split: ['BC9XOoKn5DI', 'h3UEqsqG-ec']
+  num_workers: 2  # REDUCED to fix warnings
 
 # Model Configuration
 model:
   name: "AttentionFusion"
-  hidden_dim: 256
-  num_heads: 8
-  dropout: 0.2
-  fusion_dim: 512
+  hidden_dim: 128  # REDUCED for stability
+  num_heads: 4     # REDUCED for stability
+  dropout: 0.3     # INCREASED for regularization
+  fusion_dim: 256  # REDUCED for stability
   num_classes: 3
 
 # Training Configuration
 training:
   epochs: 100
-  learning_rate: 0.001
-  weight_decay: 0.0001
-  gradient_clip: 1.0
+  learning_rate: 0.0001  # REDUCED for stability
+  weight_decay: 0.01     # INCREASED for regularization
+  gradient_clip: 0.5     # REDUCED for stability
   scheduler: "cosine"
   early_stopping_patience: 10
   
