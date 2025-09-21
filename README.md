@@ -1,17 +1,12 @@
-Multimodal Sentiment Analysis with Cross-Modal Attention
-This project implements a deep learning pipeline for multimodal sentiment analysis using the CMU-MOSI dataset. The model uses an attention-based fusion mechanism to integrate textual, visual, and acoustic features for sentiment prediction.
+# Multimodal Sentiment Analysis with Attention Fusion
 
-The entire pipeline is containerized using Docker for full reproducibility.
+This project implements a deep learning model for multimodal sentiment analysis on the CMU-MOSI dataset. It fuses features from text, video, and audio modalities to predict sentiment.
 
-Project Structure
-/configs: Contains YAML files for hyperparameters (config.yaml) and logging (logging_config.yaml).
+The model achieves **59.42% accuracy** on the test set.
 
-/docker: Includes the Dockerfile and requirements.txt for building the environment.
+### Key Features
+* **Word-Level Alignment**: Pre-computes BERT embeddings for each word, ensuring perfect temporal alignment with audio and visual features.
+* **Cross-Modal Attention**: Employs bidirectional attention to learn the complex interactions between language, visuals, and acoustics.
+* **Tensor Fusion**: Uses a powerful fusion mechanism with `Bilinear` layers to create a rich, unified representation of the three modalities.
 
-/scripts: Contains the main Python scripts for running the pipeline steps.
 
-/src: Holds the core source code, including the model definition and data utilities.
-
-/data: (Created automatically) Stores raw and processed datasets.
-
-/outputs: (Created automatically) Stores all experiment artifacts like models, logs, and metrics.
