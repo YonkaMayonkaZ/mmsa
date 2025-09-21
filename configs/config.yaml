@@ -8,10 +8,11 @@ project:
 data:
   dataset: "CMU-MOSI"
   features:
-    text: "CMU_MOSI_TimestampedWordVectors"
-    visual: "CMU_MOSI_VisualFacet_4.1"
-    audio: "CMU_MOSI_COVAREP"
-    labels: "CMU_MOSI_Opinion_Labels"
+    # UPDATED to match HDF5 keys
+    text: "words"
+    visual: "FACET_4.2"
+    audio: "COVAREP"
+    labels: "Opinion Segment Labels"
   
   # Feature dimensions
   dims:

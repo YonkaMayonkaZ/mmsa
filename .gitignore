@@ -2,7 +2,8 @@ New Text Document.txt
 dtpre.txt
 *.pdf
 .gitignore
-data/
+data/raw/*
+data/processed/*
 *.hdf5
 *.pckl
 .venv/
